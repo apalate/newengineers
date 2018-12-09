@@ -162,7 +162,7 @@ image(t(faceData)[, nrow(faceData):1], main = "(d)")
 
 ## Linear Discriminant Analysis
 
-Lees dit <a href="https://www.datascienceblog.net/post/machine-learning/linear-discriminant-analysis/" target="_blank">artikel</a> voor een uitleg. De code is overgenomen in het notebook voor verdere exploratie.
+Lees dit <a href="https://www.datascienceblog.net/post/machine-learning/linear-discriminant-analysis/" target="_blank">artikel</a> voor een uitleg. De code is overgenomen in deze notebook voor verdere exploratie.
 
 ### Dat inlezen
 

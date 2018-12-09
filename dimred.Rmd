@@ -160,3 +160,138 @@ image(t(apx3)[, nrow(apx3):1], main = "(c)")
 image(t(faceData)[, nrow(faceData):1], main = "(d)")
 ```
 
+## Linear Discriminant Analysis
+
+Lees dit <a href="https://www.datascienceblog.net/post/machine-learning/linear-discriminant-analysis/" target="_blank">artikel</a> voor een uitleg. De code is overgenomen in het notebook voor verdere exploratie.
+
+### Dat inlezen
+
+```{r}
+library(RCurl)
+f <- getURL('https://www.datascienceblog.net/data-sets/phoneme.csv')
+df <- read.csv(textConnection(f), header=T)
+print(dim(df))
+colnames(df)
+```
+
+## Splits data op in sets voor training en testen
+
+```{r}
+#logical vector: TRUE if entry belongs to train set, FALSE else
+train <- grepl("^train", df$speaker)
+# remove non-feature columns
+to.exclude <- c("row.names", "speaker", "g")
+feature.df <- df[, !colnames(df) %in% to.exclude]
+test.set <- subset(feature.df, !train)
+train.set <- subset(feature.df, train)
+train.responses <- subset(df, train)$g
+test.responses <- subset(df, !train)$g
+```
+
+### Genereer een LDA-model
+
+```{r}
+library(MASS)
+lda.model <- lda(train.set, grouping = train.responses)
+```
+
+### Visualiseer de uitkomsten
+
+```{r}
+# 1. Manual transformation
+# center data around weighted means & transform
+means <- colSums(lda.model$prior * lda.model$means)
+train.mod <- scale(train.set, center = means, scale = FALSE) %*% 
+             lda.model$scaling
+# 2. Use the predict function to transform:
+lda.prediction.train <- predict(lda.model, train.set)
+all.equal(lda.prediction.train$x, train.mod)
+```
+
+```{r}
+# visualize the features in the two LDA dimensions
+plot.df <- data.frame(train.mod, "Outcome" = train.responses)
+
+library(ggplot2)
+ggplot(plot.df, aes(x = LD1, y = LD2, color = Outcome)) + geom_point()
+```
+
+```{r}
+library(RColorBrewer)
+colors <- brewer.pal(8, "Accent")
+my.cols <- colors[match(lda.prediction.train$class, levels(df$g))]
+plot(lda.model, dimen = 4, col = my.cols)
+```
+
+```{r}
+plot_lda_centroids <- function(lda.model, train.set, response) {
+    centroids <- predict(lda.model, lda.model$means)$x
+    library(RColorBrewer)
+    colors <- brewer.pal(8, "Accent")
+    my.cols <- colors[match(lda.prediction.train$class, levels(df$g))]
+    my.points <- predict(lda.model, train.set)$x
+    no.classes <- length(levels(response))
+    par(mfrow=c(no.classes -1, no.classes -1), mar=c(1,1,1,1), oma=c(1,1,1,10))
+    for (i in 1:(no.classes - 1)) {
+        for (j in 1:(no.classes - 1)) {
+            y <- my.points[, i]
+            x <- my.points[, j]
+            cen <- cbind(centroids[, j], centroids[, i])
+            if (i == j) {
+                plot(x, y, type="n") 
+                max.y <- max(my.points[, i])
+                max.x <- max(my.points[, j])
+                min.y <- min(my.points[, i])
+                min.x <- min(my.points[, j])
+                max.both <- max(c(max.x, max.y))
+                min.both <- max(c(min.x, min.y))
+                center <- min.both + ((max.both - min.both) / 2)
+                text(center, center, colnames(my.points)[i], cex = 3)}
+            else {
+                plot(x, y, col = my.cols, pch = as.character(response), xlab ="", ylab="")
+                points(cen[,1], cen[,2], pch = 21, col = "black", bg = colors, cex = 3)
+            }
+        }
+    }
+    par(xpd = NA)
+    legend(x=par("usr")[2] + 1, y = mean(par("usr")[3:4]) + 20, 
+            legend = rownames(centroids), col = colors, pch = rep(20, length(colors)), cex = 3)
+}
+plot_lda_centroids(lda.model, train.set, train.responses)
+```
+
+```{r}
+posteriors <- lda.prediction.train$posterior # N x K matrix
+# MAP classification for sample 1:
+pred.class <- names(which.max(posteriors[1,])) # <=> lda.prediction.train$class[1]
+print(paste0("Posterior of predicted class '", pred.class, 
+    "' is: ", round(posteriors[1,pred.class], 2)))
+
+## [1] "Posterior of predicted class 'sh' is: 1"
+
+# what are the mean posteriors for individual groups?
+res <- do.call(rbind, (lapply(levels(train.responses), function(x) apply(posteriors[train.responses == x, ], 2, mean))))
+rownames(res) <- levels(train.responses)
+print(round(res, 3)) 
+```
+
+```{r}
+dims <- 1:4 # number of canonical variables to use
+accuracies <- rep(NA, length(dims))
+for (i in seq_along(dims)) {
+    lda.pred <- predict(lda.model, test.set, dim = dims[i])
+    acc <- length(which(lda.pred$class == test.responses))/length(test.responses)
+    accuracies[i] <- acc
+}
+reduced.df <- data.frame("Rank" = dims, "Accuracy" = round(accuracies, 2))
+print(reduced.df)
+```
+
+```{r}
+lda.pred <- predict(lda.model, test.set)
+plot.df <- data.frame(lda.pred$x[,1:2], "Outcome" = test.responses, 
+                    "Prediction" = lda.pred$class)
+ggplot(plot.df, aes(x = LD1, y = LD2, color = Outcome, shape = Prediction)) +
+        geom_point()
+```
+

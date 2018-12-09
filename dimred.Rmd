@@ -136,7 +136,7 @@ plot(svd2$d^2/sum(svd2$d^2), xlab = "Column", ylab = "Prop. of variance explaine
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/drNwEvEx3LY" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-```{r fig.width=600}
+```{r fig.width=1.8, fig.asp=1}
 load("data/face.rda")
 image(t(faceData)[, nrow(faceData):1])
 ```
@@ -152,7 +152,7 @@ apx2 <- svd3$u[, 1:5] %*% diag(svd3$d[1:5]) %*% t(svd3$v[, 1:5])
 apx3 <- svd3$u[, 1:10] %*% diag(svd3$d[1:10]) %*% t(svd3$v[, 1:10])
 ```
 
-```{r}
+```{r fig.asp=0.25}
 par(mfrow = c(1, 4))
 image(t(apx1)[, nrow(apx1):1], main = "(a)")
 image(t(apx2)[, nrow(apx2):1], main = "(b)")

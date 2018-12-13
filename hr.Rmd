@@ -1,0 +1,94 @@
+---
+title: "BigDAD"
+subtitle: "Sessie 2 - Kennismaken met tools en materiaal"
+output: html_notebook
+---
+<hr>
+## Laad de benodigde libraries
+Om de data te analyseren zijn een aantal functies nodig. Sommige generieke functies worden direct bij de installatie van R meegeleverd. Andere functies zijn alleen in bepaalde situaties nodig en kunnen geladen worden op het moment dat ze een toepassing hebben. Dit voorkomt dat het geheugen van de computer onnodig wordt geblokkeerd.
+
+Functies zijn vaak samengevoegd in packages. Zo zijn er een packages voor inlezen van [Google Spreadsheets](https://github.com/maxconway/gsheet), voor [tekstanalyse](https://www.tidytextmining.com/tidytext.html) of voor het analyseren van [netwerken](http://igraph.org/r/). Zie [hier](Data_Science_With_R_Workflow.pdf) voor een overzicht van nuttige packages binnen het data-analyse proces.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+library(tidyverse)  # Functies voor het bewerken van datasets (filteren, transformeren ...)
+library(readxl)     # Functies voor werken met Excel-bestanden
+library(caret)
+```
+
+## Lees data in
+De dataset is door wetenschappers van IBM gecreëerd om een use case van hun Watson Analytics systeem te illustreren. Een Excelversie kan [hier](https://www.ibm.com/communities/analytics/watson-analytics-blog/hr-employee-attrition/) worden opgehaald.
+
+Met de functie `read_xlsx()` kan de data uit het Excel-bestand worden ingelezen. Het is een goede gewoonte om parameters eerst in variabelen op te slaan en pas daarna in een functie te gebruiken. Dit bevordert de leesbaarheid van de code.
+
+De ingelezen data wordt opgeslagen in een variabele (`rawDF`). We kunnen de eerste zes regels van de dataset bekijken met de functie `head()`. De dataset is geïndexeerd (rij/kolom) en hiermee kunnen specifieke regels worden opgevraagd.
+
+```{r}
+url <- "hr.xlsx"
+rawDF <- read_xlsx(url)
+head(rawDF)
+rawDF[100:102, 2:4]
+```
+
+## Beoordeel kwaliteit
+De functie `summary()` kan worden gebruikt om snel wat beschrijvende statistieken op te vragen over de dataset. Hiermee kan worden beoordeeld of variabelen anomaliën bevatten.
+
+```{r}
+summary(rawDF)
+```
+
+### Histogrammen
+Soms worden opvallende aspecten zaken echt duidelijk bij visuele inspectie. Alhoewel R standaard functies bevat voor grafische weergave van dat (`plot()`), gebruikt men in praktijk `ggplot()`. In dit geval gebruiken we een andere weergave voor de variabelen met numerieke waarden en variabelen die categorische meetniveau's bevatten.
+<hr>
+
+#### Numerieke waarden
+```{r fig.width=12, fig.height=8}
+numDF <- rawDF %>%
+  keep(is.numeric) %>%                             # Selecteer kolommen met numerieke waarden
+  gather()                                         # Converteer naar key:value format
+
+numDF %>% ggplot(aes(value,                        # Bouw grafieken
+                     color="tomato")) +            # kleur tomato
+    facet_wrap(~ key, scales = "free") +           # in afzonderlijke frames
+    geom_density() +                               # als verdeling
+    theme(axis.text.x = element_text(angle = -60))  # pas de orientatie van de labels op de x-as aan
+```
+<hr>
+<blockquote><strong>Opdracht</strong>:<em> Onderzoek welke variabele een anomalie bevat.</em></blockquote>
+
+<hr>
+
+#### Categorische waarden
+
+```{r}
+catDF <- rawDF %>%
+  keep(is.character) %>%                        # Selecteer kolommen die niet numeriek zijn
+  gather()                                      # Converteer naar key:value format
+
+catDF %>% ggplot(aes(value)) +                  # Bouw grafieken
+    facet_wrap(~ key, scales = "free") +        # in afzonderlijke frames
+    geom_histogram(stat="count",                # als histogrammen
+                   fill="skyblue") +            # vulkleur blauw
+    coord_flip()                                # switch assen
+```
+
+<hr>
+<blockquote><strong>Opdracht</strong>:<em> Onderzoek welke variabele een anomalie bevat.</em></blockquote>
+
+```{r}
+rawDF %>% ggplot(aes(x=JobRole, fill=Gender)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r fig.width=12, fig.height=8}
+newDFnum <- rawDF %>%
+  keep(is.numeric)
+newDFnum <- data.frame(Attrition = rawDF$Attrition, newDFnum)
+
+featurePlot(x = newDFnum[,2:11], 
+            y = newDFnum$Attrition, 
+            plot = "pairs",
+            ## Add a key at the top
+            auto.key = list(columns = dim(numDF)[2] - 1))
+```
+

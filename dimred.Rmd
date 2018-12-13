@@ -5,17 +5,17 @@ output: html_notebook
 
 ## Het probleem
 
-Volgens het principe van Ockhams scheermes dient een data analist altijd te streven naar een model dat het minst aantal variabelen bevat. Aan de andere kant dient het model zoveel mogelijk van de informatie uit de data terug te geven.
+Following the principle of Occam's razor a data analist should prefer models with the fewest number of variables. However a model should also extract as much information as possible from the available data.
 
 > “Everything must be made as simple as possible, but no simpler.” - Albert Einstein
 
-Het vereenvoudigen van een model begint bij het reduceren van het aantal variabelen. De uitdaging is om de onafhankelijke variabelen te bewaren die de meeste informatie bevatten over de afhankelijke variabele. Hiervoor zijn verschillende methodes ontwikkeld, waarvan een aantal in deze notebook zijn verzameld.
+Model pruning starts with reducing the number of variables. The challenge is to select the independent variables that explain most of the dependent variable's volatility. In this notebook some basic methods for feature extraction are discussed.
 
 ## Principle Component Analysis (PCA) en Singular Value Decomposition (SVD)
 
-In onderstaande video's legt Dr. Roger Peng de principes uit van PCA en SVD. De voorbeelden zijn toegevoegd in de notities onder de video's.
+In the following video's Dr. Roger Peng explains the mechanics of PCA en SVD. The code examples have been added to this document.
 
-### Deel 1
+### Part 1
 <iframe width="560" height="315" src="https://www.youtube.com/embed/ts6UQnE6E1U" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ```{r}
@@ -59,7 +59,7 @@ plot(colMeans(dMxOrd), xlab = "Columns", ylab = "Column Mean", pch = 19)
 ```
 
 
-### Deel 2
+### Part 2
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/BSfw0rpyC2g" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
@@ -132,11 +132,11 @@ plot(svd2$d, xlab = "Column", ylab = "Singular Value", pch = 19)
 plot(svd2$d^2/sum(svd2$d^2), xlab = "Column", ylab = "Prop. of variance explained", pch = 19)
 ```
 
-### Deel 3
+### Part 3
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/drNwEvEx3LY" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-```{r fig.width=1.8, fig.asp=1}
+```{r fig.width=4, fig.asp=1}
 load("data/face.rda")
 image(t(faceData)[, nrow(faceData):1])
 ```
@@ -162,7 +162,7 @@ image(t(faceData)[, nrow(faceData):1], main = "(d)")
 
 ## Linear Discriminant Analysis
 
-Lees dit <a href="https://www.datascienceblog.net/post/machine-learning/linear-discriminant-analysis/" target="_blank">artikel</a> voor een uitleg. De code is overgenomen in deze notebook voor verdere exploratie.
+Read this post <a href="https://www.datascienceblog.net/post/machine-learning/linear-discriminant-analysis/" target="_blank">artikel</a> for an explanation. All code examples have been added below.
 
 ### Dat inlezen
 

@@ -1,0 +1,71 @@
+---
+title: "Intro R"
+author: "Witek ten Hove"
+date: "`r format(Sys.time(), '%d-%m-%Y')`"
+output: html_notebook
+---
+
+## Inleiding
+Lara is verantwoordelijk voor het toezicht op het veiligheidsbeleid bij een multinational. Hiervoor gebruikt ze data die ze van de managers van de verschillende productielocaties krijgt. Wekelijks vullen ze een vragenlijst in. Op basis van de antwoorden kan Lara zich een beeld vormen van de ontwikkelingen bij de afzonderlijke locaties en zien of het beleid in een voldoende tempo wordt uitgevoerd. Lara stuurt de data maandelijks door aan het hoofd van de afdeling Risk Management met een analyse en commentaar.
+
+Hoe kan Lara deze workflow zo efficient en effectief mogelijk uitvoeren? In deze workshop gaan we Lara helpen met dit vraagstuk.
+
+## Libraries laden
+We gaan zo meteen een aantal functies gebruiken die niet standaard in R zitten. Deze kunnen we echter eenvoudig laden met de `library()` functie.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+library(gsheet)
+library(tidyverse)
+library(plotly)
+```
+ 
+
+## Data inlezen
+De data wordt verzameld via online formulieren. Iedere week vullen alle managers hun gegevens in en deze worden verzameld in een database. Via een query kan Lara de data exporteren naar een csv-bestand en inlezen.
+
+```{r}
+rawDF <- gsheet2tbl("https://docs.google.com/spreadsheets/d/1sZLHr2ebgieI9Qw3WDY4YFP0zKOMVSEbthdwjPobghE/edit?usp=sharing")[-1]
+head(rawDF)
+```
+
+## Kwaliteit data bepalen
+Als eerste kunnen we de eerste paar records en de wat basisstatistieken bekijken.
+```{r}
+head(rawDF)
+summary(rawDF)
+```
+
+De eerste kolom bevat tekst gegevens (type = `chr`). Dit zijn klaarblijkelijk de IDs van de verschillende fabrieken. We gaan die omzetten naar categorieën. Met de functie `levels()` kunnen we kijken welke codes er allemaal zijn. Nu zien we dat Lara de targets er ook tussen heeft gezet.
+
+Tevens moeten we de kolom met datumgegevens nog omzetten naar het type `date`. Bij het inlezen werd deze data als tekst beschouwd.
+
+```{r}
+rawDF$id <- as.factor(rawDF$id)
+levels(rawDF$id)
+rawDF$date <- as.Date(rawDF$date)
+str(rawDF)
+```
+
+## Data visualiseren
+We kunnen de data visueel inspecteren. Laten we de eerst de data filteren voor één fabriek en de data plotten.
+
+```{r}
+flrDF <- filter(rawDF, id == "USA1")
+plot(flrDF$date, flrDF$value)
+```
+
+Dit ziet er een beetje saai uit. Om wat meer mogelijkheden qua opmaak gebruiken we de functies uit het `ggplot2` package. Deze is in het `tidyverse` package meeverpakt. We plotten gelijk alle data in één grafiek.
+
+```{r}
+p <- ggplot(rawDF) +
+  geom_line(aes(x = date, y = value, group = id, color = id)) +
+  ylim(0, 4) +
+  scale_y_continuous(name = "level", breaks=c(1, 2, 3, 4), labels = c("BASIC", "DEVELOPMENT",
+                                                                         "MATURITY", "EXCELLENCE"))
+p
+```
+
+Met functies uit het package `plotly` kunnen we interactie toevoegen.
+```{r}
+ggplotly(p)
+```
+

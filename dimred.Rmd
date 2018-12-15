@@ -164,7 +164,7 @@ image(t(faceData)[, nrow(faceData):1], main = "(d)")
 
 Read this post <a href="https://www.datascienceblog.net/post/machine-learning/linear-discriminant-analysis/" target="_blank">artikel</a> for an explanation. All code examples have been added below.
 
-### Dat inlezen
+### Read data
 
 ```{r}
 library(RCurl)
@@ -174,7 +174,7 @@ print(dim(df))
 colnames(df)
 ```
 
-## Splits data op in sets voor training en testen
+## Split data into training and test sets
 
 ```{r}
 #logical vector: TRUE if entry belongs to train set, FALSE else
@@ -188,14 +188,14 @@ train.responses <- subset(df, train)$g
 test.responses <- subset(df, !train)$g
 ```
 
-### Genereer een LDA-model
+### Generate an LDA-model
 
 ```{r}
 library(MASS)
 lda.model <- lda(train.set, grouping = train.responses)
 ```
 
-### Visualiseer de uitkomsten
+### Visualisize the results
 
 ```{r}
 # 1. Manual transformation

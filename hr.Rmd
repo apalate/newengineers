@@ -1,26 +1,21 @@
 ---
-title: "BigDAD"
-subtitle: "Sessie 2 - Kennismaken met tools en materiaal"
-output: html_notebook
+title: "IBM HR dataset"
+output: 
+  html_notebook: 
+    fig_caption: yes
+    toc: yes
 ---
 <hr>
-## Laad de benodigde libraries
-Om de data te analyseren zijn een aantal functies nodig. Sommige generieke functies worden direct bij de installatie van R meegeleverd. Andere functies zijn alleen in bepaalde situaties nodig en kunnen geladen worden op het moment dat ze een toepassing hebben. Dit voorkomt dat het geheugen van de computer onnodig wordt geblokkeerd.
-
-Functies zijn vaak samengevoegd in packages. Zo zijn er een packages voor inlezen van [Google Spreadsheets](https://github.com/maxconway/gsheet), voor [tekstanalyse](https://www.tidytextmining.com/tidytext.html) of voor het analyseren van [netwerken](http://igraph.org/r/). Zie [hier](Data_Science_With_R_Workflow.pdf) voor een overzicht van nuttige packages binnen het data-analyse proces.
+## Load libraries
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
 library(tidyverse)  # Functies voor het bewerken van datasets (filteren, transformeren ...)
 library(readxl)     # Functies voor werken met Excel-bestanden
-library(caret)
+library(caret)      # Functies voor predictive modeling
 ```
 
-## Lees data in
-De dataset is door wetenschappers van IBM gecreëerd om een use case van hun Watson Analytics systeem te illustreren. Een Excelversie kan [hier](https://www.ibm.com/communities/analytics/watson-analytics-blog/hr-employee-attrition/) worden opgehaald.
-
-Met de functie `read_xlsx()` kan de data uit het Excel-bestand worden ingelezen. Het is een goede gewoonte om parameters eerst in variabelen op te slaan en pas daarna in een functie te gebruiken. Dit bevordert de leesbaarheid van de code.
-
-De ingelezen data wordt opgeslagen in een variabele (`rawDF`). We kunnen de eerste zes regels van de dataset bekijken met de functie `head()`. De dataset is geïndexeerd (rij/kolom) en hiermee kunnen specifieke regels worden opgevraagd.
+## Read data
+The data set has been created by IBM scientists to illustrate a use case of their Watson Analytics system. An Excel version can be obtained [here](https://www.ibm.com/communities/analytics/watson-analytics-blog/hr-employee-attrition/).
 
 ```{r}
 url <- "hr.xlsx"
@@ -29,50 +24,49 @@ head(rawDF)
 rawDF[100:102, 2:4]
 ```
 
-## Beoordeel kwaliteit
-De functie `summary()` kan worden gebruikt om snel wat beschrijvende statistieken op te vragen over de dataset. Hiermee kan worden beoordeeld of variabelen anomaliën bevatten.
+## Assess data quality
 
 ```{r}
 summary(rawDF)
 ```
 
-### Histogrammen
-Soms worden opvallende aspecten zaken echt duidelijk bij visuele inspectie. Alhoewel R standaard functies bevat voor grafische weergave van dat (`plot()`), gebruikt men in praktijk `ggplot()`. In dit geval gebruiken we een andere weergave voor de variabelen met numerieke waarden en variabelen die categorische meetniveau's bevatten.
-<hr>
+### Histograms
 
-#### Numerieke waarden
+#### Numerical values
 ```{r fig.width=12, fig.height=8}
 numDF <- rawDF %>%
-  keep(is.numeric) %>%                             # Selecteer kolommen met numerieke waarden
-  gather()                                         # Converteer naar key:value format
+  keep(is.numeric) %>%                             # Select colums with numerical values
+  gather()                                         # Convert to key:value format
 
-numDF %>% ggplot(aes(value,                        # Bouw grafieken
-                     color="tomato")) +            # kleur tomato
-    facet_wrap(~ key, scales = "free") +           # in afzonderlijke frames
-    geom_density() +                               # als verdeling
-    theme(axis.text.x = element_text(angle = -60))  # pas de orientatie van de labels op de x-as aan
+numDF %>% ggplot(aes(value,                        # Generate charts
+                     color="tomato")) +            # Color tomato
+    facet_wrap(~ key, scales = "free") +           # In separate frames
+    geom_density() +                               # Present as distribution
+    theme(axis.text.x = element_text(angle = -60))  # change label orientation
 ```
 <hr>
-<blockquote><strong>Opdracht</strong>:<em> Onderzoek welke variabele een anomalie bevat.</em></blockquote>
+<blockquote><strong>Assignment</strong>:<em> Assess which variables contain anomalies.</em></blockquote>
 
 <hr>
 
-#### Categorische waarden
+#### Categorical values
 
 ```{r}
 catDF <- rawDF %>%
-  keep(is.character) %>%                        # Selecteer kolommen die niet numeriek zijn
-  gather()                                      # Converteer naar key:value format
+  keep(is.character) %>%                        # Select colums with numerical values
+  gather()                                      # Convert to key:value format
 
-catDF %>% ggplot(aes(value)) +                  # Bouw grafieken
-    facet_wrap(~ key, scales = "free") +        # in afzonderlijke frames
-    geom_histogram(stat="count",                # als histogrammen
-                   fill="skyblue") +            # vulkleur blauw
-    coord_flip()                                # switch assen
+catDF %>% ggplot(aes(value)) +                  # Generate charts
+    facet_wrap(~ key, scales = "free") +        # In separate frames
+    geom_histogram(stat="count",                # Present as histogram
+                   fill="skyblue") +            # Color blue
+    coord_flip()                                # Switch axes
 ```
 
 <hr>
-<blockquote><strong>Opdracht</strong>:<em> Onderzoek welke variabele een anomalie bevat.</em></blockquote>
+<blockquote><strong>Assignment</strong>:<em> Assess which variables contain anomalies.</em></blockquote>
+
+<hr>
 
 ```{r}
 rawDF %>% ggplot(aes(x=JobRole, fill=Gender)) +
@@ -80,15 +74,58 @@ rawDF %>% ggplot(aes(x=JobRole, fill=Gender)) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
-```{r fig.width=12, fig.height=8}
+```{r fig.width=10, fig.height=8}
+rawDF <- rawDF %>% mutate_if(is.character, as.factor)
+rawDF <- rawDF %>% filter(Age < 100, Over18 == "Y")
 newDFnum <- rawDF %>%
   keep(is.numeric)
 newDFnum <- data.frame(Attrition = rawDF$Attrition, newDFnum)
 
-featurePlot(x = newDFnum[,2:11], 
-            y = newDFnum$Attrition, 
+featurePlot(x = dplyr::select(newDFnum, Age, DailyRate, DistanceFromHome, HourlyRate, MonthlyIncome, MonthlyRate, NumCompaniesWorked, PercentSalaryHike, TotalWorkingYears),
+            y = newDFnum$Attrition,
             plot = "pairs",
             ## Add a key at the top
             auto.key = list(columns = dim(numDF)[2] - 1))
+```
+
+```{r}
+procData <- preProcess(dplyr::select(rawDF, -Attrition),
+                     method = c("center", "scale", "YeoJohnson", "nzv"))
+procData
+```
+
+```{r}
+tfDF <- predict(procData, newdata = dplyr::select(rawDF, -Attrition, -Over18))
+head(tfDF)
+```
+
+```{r}
+set.seed(3456)
+newDF <- data.frame(Attrition = rawDF$Attrition, tfDF)
+trainIndex <- createDataPartition(newDF$Attrition, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+head(trainIndex)
+hrTrain <- newDF[trainIndex,]
+hrTest <- newDF[-trainIndex,]
+```
+
+```{r}
+fitControl <- trainControl(## 10-fold CV
+                           method = "repeatedcv",
+                           number = 10,
+                           ## repeated ten times
+                           repeats = 10)
+```
+
+
+```{r}
+gbmFit1 <- train(Attrition ~ ., data = hrTrain, 
+                 method = "gbm", 
+                 trControl = fitControl,
+                 ## This last option is actually one
+                 ## for gbm() that passes through
+                 verbose = FALSE)
+gbmFit1
 ```
 

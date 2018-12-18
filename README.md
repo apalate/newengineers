@@ -10,3 +10,4 @@ Inspiration:
 
 - In-store product tracking - [AIPoly](https://www.aipoly.com/)
 - Sentiment analysis in a spreadsheet - [Demo](https://docs.google.com/spreadsheets/d/10S_jwukMS0KBXaMtKhZmQEXLMPZxUM6shN6cpSYw07Q/copy)
+- Code examples and open data - [Kaggle](https://www.kaggle.com/)

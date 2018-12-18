@@ -11,3 +11,7 @@ Inspiration:
 - In-store product tracking - [AIPoly](https://www.aipoly.com/)
 - Sentiment analysis in a spreadsheet - [Demo](https://docs.google.com/spreadsheets/d/10S_jwukMS0KBXaMtKhZmQEXLMPZxUM6shN6cpSYw07Q/copy)
 - Code examples and open data - [Kaggle](https://www.kaggle.com/)
+- Voorbeeld image recognition: [Demo](https://hanbedrijfskunde.github.io/dbi/ml5/webcam.html) en [code](https://github.com/hanbedrijfskunde/dbi/tree/master/ml5)
+- [Picojs](https://github.com/tehnokv/picojs)
+- [ML5](https://ml5js.org/)
+- [Google Experiments](https://experiments.withgoogle.com/collections)

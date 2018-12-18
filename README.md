@@ -15,3 +15,4 @@ Inspiration:
 - [Picojs](https://github.com/tehnokv/picojs)
 - [ML5](https://ml5js.org/)
 - [Google Experiments](https://experiments.withgoogle.com/collections)
+- [Google AI blog](https://ai.googleblog.com/)

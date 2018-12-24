@@ -80,6 +80,7 @@ rawDF <- rawDF %>% filter(Age < 100, Over18 == "Y")
 newDFnum <- rawDF %>%
   keep(is.numeric)
 newDFnum <- data.frame(Attrition = rawDF$Attrition, newDFnum)
+summary(rawDF$Attrition)[1] / sum(summary(rawDF$Attrition))
 
 featurePlot(x = dplyr::select(newDFnum, Age, DailyRate, DistanceFromHome, HourlyRate, MonthlyIncome, MonthlyRate, NumCompaniesWorked, PercentSalaryHike, TotalWorkingYears),
             y = newDFnum$Attrition,
@@ -111,11 +112,9 @@ hrTest <- newDF[-trainIndex,]
 ```
 
 ```{r}
-fitControl <- trainControl(## 10-fold CV
-                           method = "repeatedcv",
-                           number = 10,
-                           ## repeated ten times
-                           repeats = 10)
+fitControl <- trainControl(method = "repeatedcv",
+                           number = 5,
+                           repeats = 5)
 ```
 
 
@@ -123,9 +122,47 @@ fitControl <- trainControl(## 10-fold CV
 gbmFit1 <- train(Attrition ~ ., data = hrTrain, 
                  method = "gbm", 
                  trControl = fitControl,
-                 ## This last option is actually one
-                 ## for gbm() that passes through
                  verbose = FALSE)
 gbmFit1
+```
+
+```{r}
+myGrid <- expand.grid(n.trees = c(150, 200, 225),
+                      interaction.depth = c(5, 7, 9),
+                      shrinkage = c(0.075, 0.1, 0.125, 0.15),
+                      n.minobsinnode = c(7, 10, 15))
+
+gbmFit2 <- train(Attrition ~ ., data = hrTrain, 
+                 method = "gbm", 
+                 trControl = fitControl,
+                 ## This last option is actually one
+                 ## for gbm() that passes through
+                 verbose = FALSE,
+                 tuneGrid = myGrid)
+```
+
+```{r}
+gbmFit2$bestTune
+```
+
+```{r}
+myGrid <- gbmFit2$bestTune
+
+gbmFit3 <- train(Attrition ~ ., data = hrTrain, 
+                 method = "gbm", 
+                 trControl = fitControl,
+                 ## This last option is actually one
+                 ## for gbm() that passes through
+                 verbose = FALSE,
+                 tuneGrid = myGrid)
+
+gbmFit3
+```
+
+```{r}
+hrTest$predicted <- predict(gbmFit3, newdata = hrTest)
+results <- table(hrTest$Attrition, hrTest$predicted)
+accuracy <- sum(diag(results)) / dim(hrTest)[1]
+accuracy
 ```
 

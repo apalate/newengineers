@@ -2,41 +2,43 @@
 title: "Intro R"
 author: "Witek ten Hove"
 date: "`r format(Sys.time(), '%d-%m-%Y')`"
-output: html_notebook
+output:
+  html_notebook: default
+  word_document: default
 ---
 
-## Inleiding
-Lara is verantwoordelijk voor het toezicht op het veiligheidsbeleid bij een multinational. Hiervoor gebruikt ze data die ze van de managers van de verschillende productielocaties krijgt. Wekelijks vullen ze een vragenlijst in. Op basis van de antwoorden kan Lara zich een beeld vormen van de ontwikkelingen bij de afzonderlijke locaties en zien of het beleid in een voldoende tempo wordt uitgevoerd. Lara stuurt de data maandelijks door aan het hoofd van de afdeling Risk Management met een analyse en commentaar.
+## Story
+Lara is a quality manager at a multinational company. One of her responsibilities is to monitor compliance to safety rules. She uses data that she receives every week from all the production faciclities. Local managers fill in a survey and Lara uses the aggregated answers to follow developments and see whether rules are implemented according to plans. Lara produces a monthly report which she sends to the head of Risk Management.
 
-Hoe kan Lara deze workflow zo efficient en effectief mogelijk uitvoeren? In deze workshop gaan we Lara helpen met dit vraagstuk.
+How can we help Lara to do her work more efficiently and generate better insights?
 
-## Libraries laden
-We gaan zo meteen een aantal functies gebruiken die niet standaard in R zitten. Deze kunnen we echter eenvoudig laden met de `library()` functie.
+## Load libraries
+We will be using some functions that are not part of the base R installation by loading the packages that contain them. For that we'll use the `library()` function.
+
 ```{r message=FALSE, warning=FALSE, paged.print=FALSE}
 library(gsheet)
 library(tidyverse)
 library(plotly)
 ```
- 
 
-## Data inlezen
-De data wordt verzameld via online formulieren. Iedere week vullen alle managers hun gegevens in en deze worden verzameld in een database. Via een query kan Lara de data exporteren naar een csv-bestand en inlezen.
+## Read data
+
+The data is gathered using Google Forms. We can read this data directly from the source.
 
 ```{r}
 rawDF <- gsheet2tbl("https://docs.google.com/spreadsheets/d/1sZLHr2ebgieI9Qw3WDY4YFP0zKOMVSEbthdwjPobghE/edit?usp=sharing")[-1]
 head(rawDF)
 ```
 
-## Kwaliteit data bepalen
-Als eerste kunnen we de eerste paar records en de wat basisstatistieken bekijken.
+## Assess data quality
+We can view the first few rows and get some basic statistical parameters (central tendency and spread).
 ```{r}
 head(rawDF)
 summary(rawDF)
 ```
+The first column (variable) contains strings (type = `chr`). Most likely they are the IDs of the different facilities. We will change this type into categorical. Using the function `levels()` we can check all the different IDs. Apparently Lara added targets to the data.
 
-De eerste kolom bevat tekst gegevens (type = `chr`). Dit zijn klaarblijkelijk de IDs van de verschillende fabrieken. We gaan die omzetten naar categorieën. Met de functie `levels()` kunnen we kijken welke codes er allemaal zijn. Nu zien we dat Lara de targets er ook tussen heeft gezet.
-
-Tevens moeten we de kolom met datumgegevens nog omzetten naar het type `date`. Bij het inlezen werd deze data als tekst beschouwd.
+We should also change the format of the columns with dates to type date`. Otherwise it will be handled as text data.
 
 ```{r}
 rawDF$id <- as.factor(rawDF$id)
@@ -45,15 +47,15 @@ rawDF$date <- as.Date(rawDF$date)
 str(rawDF)
 ```
 
-## Data visualiseren
-We kunnen de data visueel inspecteren. Laten we de eerst de data filteren voor één fabriek en de data plotten.
+## Visualization
+Now we can inspect the data visually. First we'll look at the data of one facility.
 
 ```{r}
 flrDF <- filter(rawDF, id == "USA1")
 plot(flrDF$date, flrDF$value)
 ```
 
-Dit ziet er een beetje saai uit. Om wat meer mogelijkheden qua opmaak gebruiken we de functies uit het `ggplot2` package. Deze is in het `tidyverse` package meeverpakt. We plotten gelijk alle data in één grafiek.
+Although informative the visualization is rather unattractive. The pacakge `ggplot2` (part of `tidyverse`) has functions for building nice visualizations. We will plot all data in one chart.
 
 ```{r}
 p <- ggplot(rawDF) +
@@ -64,7 +66,8 @@ p <- ggplot(rawDF) +
 p
 ```
 
-Met functies uit het package `plotly` kunnen we interactie toevoegen.
+Using the package `plotly` we can add interaction (move the cursor over the chart).
+
 ```{r}
 ggplotly(p)
 ```

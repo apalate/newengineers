@@ -1,0 +1,168 @@
+---
+title: "IBM HR dataset"
+output: 
+  html_notebook: 
+    fig_caption: yes
+    toc: yes
+---
+<hr>
+## Load libraries
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+library(tidyverse)  # Functies voor het bewerken van datasets (filteren, transformeren ...)
+library(readxl)     # Functies voor werken met Excel-bestanden
+library(caret)      # Functies voor predictive modeling
+```
+
+## Read data
+The data set has been created by IBM scientists to illustrate a use case of their Watson Analytics system. An Excel version can be obtained [here](https://www.ibm.com/communities/analytics/watson-analytics-blog/hr-employee-attrition/).
+
+```{r}
+url <- "hr.xlsx"
+rawDF <- read_xlsx(url)
+head(rawDF)
+rawDF[100:102, 2:4]
+```
+
+## Assess data quality
+
+```{r}
+summary(rawDF)
+```
+
+### Histograms
+
+#### Numerical values
+```{r fig.width=12, fig.height=8}
+numDF <- rawDF %>%
+  keep(is.numeric) %>%                             # Select colums with numerical values
+  gather()                                         # Convert to key:value format
+
+numDF %>% ggplot(aes(value,                        # Generate charts
+                     color="tomato")) +            # Color tomato
+    facet_wrap(~ key, scales = "free") +           # In separate frames
+    geom_density() +                               # Present as distribution
+    theme(axis.text.x = element_text(angle = -60))  # change label orientation
+```
+<hr>
+<blockquote><strong>Assignment</strong>:<em> Assess which variables contain anomalies.</em></blockquote>
+
+<hr>
+
+#### Categorical values
+
+```{r}
+catDF <- rawDF %>%
+  keep(is.character) %>%                        # Select colums with numerical values
+  gather()                                      # Convert to key:value format
+
+catDF %>% ggplot(aes(value)) +                  # Generate charts
+    facet_wrap(~ key, scales = "free") +        # In separate frames
+    geom_histogram(stat="count",                # Present as histogram
+                   fill="skyblue") +            # Color blue
+    coord_flip()                                # Switch axes
+```
+
+<hr>
+<blockquote><strong>Assignment</strong>:<em> Assess which variables contain anomalies.</em></blockquote>
+
+<hr>
+
+```{r}
+rawDF %>% ggplot(aes(x=JobRole, fill=Gender)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r fig.width=10, fig.height=8}
+rawDF <- rawDF %>% mutate_if(is.character, as.factor)
+rawDF <- rawDF %>% filter(Age < 100, Over18 == "Y")
+newDFnum <- rawDF %>%
+  keep(is.numeric)
+newDFnum <- data.frame(Attrition = rawDF$Attrition, newDFnum)
+summary(rawDF$Attrition)[1] / sum(summary(rawDF$Attrition))
+
+featurePlot(x = dplyr::select(newDFnum, Age, DailyRate, DistanceFromHome, HourlyRate, MonthlyIncome, MonthlyRate, NumCompaniesWorked, PercentSalaryHike, TotalWorkingYears),
+            y = newDFnum$Attrition,
+            plot = "pairs",
+            ## Add a key at the top
+            auto.key = list(columns = dim(numDF)[2] - 1))
+```
+
+```{r}
+procData <- preProcess(dplyr::select(rawDF, -Attrition),
+                     method = c("center", "scale", "YeoJohnson", "nzv"))
+procData
+```
+
+```{r}
+tfDF <- predict(procData, newdata = dplyr::select(rawDF, -Attrition, -Over18))
+head(tfDF)
+```
+
+```{r}
+set.seed(3456)
+newDF <- data.frame(Attrition = rawDF$Attrition, tfDF)
+trainIndex <- createDataPartition(newDF$Attrition, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+head(trainIndex)
+hrTrain <- newDF[trainIndex,]
+hrTest <- newDF[-trainIndex,]
+```
+
+```{r}
+fitControl <- trainControl(method = "repeatedcv",
+                           number = 5,
+                           repeats = 5)
+```
+
+
+```{r}
+gbmFit1 <- train(Attrition ~ ., data = hrTrain, 
+                 method = "gbm", 
+                 trControl = fitControl,
+                 verbose = FALSE)
+gbmFit1
+```
+
+```{r}
+myGrid <- expand.grid(n.trees = c(150, 200, 225),
+                      interaction.depth = c(5, 7, 9),
+                      shrinkage = c(0.075, 0.1, 0.125, 0.15),
+                      n.minobsinnode = c(7, 10, 15))
+
+gbmFit2 <- train(Attrition ~ ., data = hrTrain, 
+                 method = "gbm", 
+                 trControl = fitControl,
+                 ## This last option is actually one
+                 ## for gbm() that passes through
+                 verbose = FALSE,
+                 tuneGrid = myGrid)
+```
+
+```{r}
+gbmFit2$bestTune
+```
+
+```{r}
+myGrid <- gbmFit2$bestTune
+
+gbmFit3 <- train(Attrition ~ ., data = hrTrain, 
+                 method = "gbm", 
+                 trControl = fitControl,
+                 ## This last option is actually one
+                 ## for gbm() that passes through
+                 verbose = FALSE,
+                 tuneGrid = myGrid)
+
+gbmFit3
+```
+
+```{r}
+hrTest$predicted <- predict(gbmFit3, newdata = hrTest)
+results <- table(hrTest$Attrition, hrTest$predicted)
+accuracy <- sum(diag(results)) / dim(hrTest)[1]
+accuracy
+```
+

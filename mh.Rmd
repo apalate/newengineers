@@ -1,0 +1,43 @@
+---
+title: "MH Problem"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+
+mhFunction <- function(d = "remain") {
+  
+  # Host: Prepare three doors with one prize and shuffle
+  doorSet <- c(1, 0, 0)
+  doorsStart <-  sample(x = doorSet, size = 3, replace = FALSE, prob = NULL)
+  
+  # Player: Choose action
+  choice <- sample.int(n = 3, size = 1)
+  
+  # Host: Show empty door
+  doorsLeft <- doorsStart[-choice]
+  doorEmpty <- which(doorsLeft == 0)[1]
+  
+  # Player: decision >> remain, switch or random >> score
+  decisionSet <- c(doorsStart[choice], doorsLeft[-doorEmpty])
+  score <- switch(d,
+                  "remain" = decisionSet[1],
+                  "switch" = decisionSet[2],
+                  "random" = sample(decisionSet, 1))
+  return(score)
+}
+
+n <- 100000
+remain <- sapply(1:n, function(x) mhFunction("remain"))
+switch <- sapply(1:n, function(x) mhFunction("switch"))
+random <- sapply(1:n, function(x) mhFunction("random"))
+
+scores <- data.frame(remain = mean(remain), switch = mean(switch), random = mean(random)) %>% gather(key = "tactic", value = "result") %>% arrange(result)
+
+ggplot(scores) + 
+  geom_col(aes(x = reorder(tactic, -result), y = result, fill = tactic)) +
+  labs(x = "tactic")
+  ylim(0, 1)
+```

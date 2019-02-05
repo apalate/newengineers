@@ -1,0 +1,74 @@
+---
+title: "Intro R"
+author: "Witek ten Hove"
+date: "`r format(Sys.time(), '%d-%m-%Y')`"
+output:
+  html_notebook: default
+  word_document: default
+---
+
+## Story
+Lara is a quality manager at a multinational company. One of her responsibilities is to monitor compliance to safety rules. She uses data that she receives every week from all the production faciclities. Local managers fill in a survey and Lara uses the aggregated answers to follow developments and see whether rules are implemented according to plans. Lara produces a monthly report which she sends to the head of Risk Management.
+
+How can we help Lara to do her work more efficiently and generate better insights?
+
+## Load libraries
+We will be using some functions that are not part of the base R installation by loading the packages that contain them. For that we'll use the `library()` function.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+library(gsheet)
+library(tidyverse)
+library(plotly)
+```
+
+## Read data
+
+The data is gathered using Google Forms. We can read this data directly from the source.
+
+```{r}
+rawDF <- gsheet2tbl("https://docs.google.com/spreadsheets/d/1sZLHr2ebgieI9Qw3WDY4YFP0zKOMVSEbthdwjPobghE/edit?usp=sharing")[-1]
+head(rawDF)
+```
+
+## Assess data quality
+We can view the first few rows and get some basic statistical parameters (central tendency and spread).
+```{r}
+head(rawDF)
+summary(rawDF)
+```
+The first column (variable) contains strings (type = `chr`). Most likely they are the IDs of the different facilities. We will change this type into categorical. Using the function `levels()` we can check all the different IDs. Apparently Lara added targets to the data.
+
+We should also change the format of the columns with dates to type date`. Otherwise it will be handled as text data.
+
+```{r}
+rawDF$id <- as.factor(rawDF$id)
+levels(rawDF$id)
+rawDF$date <- as.Date(rawDF$date)
+str(rawDF)
+```
+
+## Visualization
+Now we can inspect the data visually. First we'll look at the data of one facility.
+
+```{r}
+flrDF <- filter(rawDF, id == "USA1")
+plot(flrDF$date, flrDF$value)
+```
+
+Although informative the visualization is rather unattractive. The pacakge `ggplot2` (part of `tidyverse`) has functions for building nice visualizations. We will plot all data in one chart.
+
+```{r}
+p <- ggplot(rawDF) +
+  geom_line(aes(x = date, y = value, group = id, color = id)) +
+  ylim(0, 4) +
+  scale_y_continuous(name = "level", breaks=c(1, 2, 3, 4), labels = c("BASIC", "DEVELOPMENT",
+                                                                         "MATURITY", "EXCELLENCE"))
+p
+```
+
+Using the package `plotly` we can add interaction (move the cursor over the chart).
+
+```{r}
+ggplotly(p)
+```
+

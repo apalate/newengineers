@@ -1,0 +1,57 @@
+---
+title: "Black Friday"
+output: html_notebook
+---
+
+## Load libraries
+
+```{r}
+library(MASS)
+library(tidyverse)
+library(PCAmixdata)
+library(fastDummies)
+```
+
+## Read data
+
+```{r}
+myDF <- read.csv("BlackFriday.csv")[-c(1,2)]
+
+summary(myDF)
+
+myDF <- myDF %>% mutate_at(.vars = vars(1:6), .funs = as.factor)
+myDF[, 7:9][is.na(myDF[, 7:9])] <- 0
+summary(myDF)
+```
+
+```{r}
+split <- splitmix(myDF[-c(10)])
+
+X1 <- split$X.quanti 
+X2 <- split$X.quali
+res.pcamix <- PCAmix(X.quanti=X1, X.quali=X2, rename.level=TRUE, graph=FALSE)
+```
+
+```{r}
+par(mfrow=c(2,2))
+plot(res.pcamix,choice="ind",coloring.ind=X2$houses,label=FALSE,
+      posleg="bottomright", main="Observations")
+plot(res.pcamix,choice="levels",xlim=c(-1.5,2.5), main="Levels")
+plot(res.pcamix,choice="cor",main="Numerical variables")
+plot(res.pcamix,choice="sqload",coloring.var=T, leg=TRUE,
+     posleg="topright", main="All variables")
+```
+
+```{r}
+myDFDummies <- (myDF[-10] %>% dummy_cols)[-c(1:6)]
+myMx <- as.matrix(myDFDummies)
+heatmap(as.matrix(myMx[1:100,]))
+```
+
+```{r}
+svd1 <- svd(scale(myMx))
+par(mfrow = c(1, 3))
+plot(svd1$u[, 1], xlab = "First left singular vector", ylab = "Row", pch = 19)
+plot(svd1$v[, 1], xlab = "First right singular vector", ylab = "Column", pch = 19)
+```
+

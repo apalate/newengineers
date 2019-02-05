@@ -1,0 +1,165 @@
+---
+title: "Voorbeelden APIs"
+output: html_notebook
+---
+
+## What is an API?
+
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/LooL6_chvN4" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+Voorbeelden API call (probeer uit in je browser:
+
+* http://api.openweathermap.org/data/2.5/forecast?q=amsterdam,nl&APPID=bcbe4acaf519f859739d43a16c7eae96
+* https://www.datakick.org/api/items?query=peanut+butter
+* https://haveibeenpwned.com/api/v2/pasteaccount/test@example.com
+
+
+
+
+
+## Example API calls
+
+```{r}
+## geocoding function using OSM Nominatim API
+## details: http://wiki.openstreetmap.org/wiki/Nominatim
+## made by: D.Kisler 
+
+nominatim_osm <- function(address = NULL)
+{
+  if(suppressWarnings(is.null(address)))
+    return(data.frame())
+  tryCatch(
+    d <- jsonlite::fromJSON( 
+      gsub('\\@addr\\@', gsub('\\s+', '\\%20', address), 
+           'http://nominatim.openstreetmap.org/search/@addr@?format=json&addressdetails=0&limit=1')
+    ), error = function(c) return(data.frame())
+  )
+  if(length(d) == 0) return(data.frame())
+  return(data.frame(lon = as.numeric(d$lon), lat = as.numeric(d$lat)))
+}
+
+#dplyr will be used to stack lists together into a data.frame and to get the pipe operator '%>%'
+suppressPackageStartupMessages(library(dplyr))
+#input addresses
+addresses <- c("Baker Street 221b, London", "Brandenburger Tor, Berlin", 
+               "Platz der Deutschen Einheit 1, Hamburg", "Arc de Triomphe de l’Etoile, Paris",
+               "Дворцовая пл., Санкт-Петербург, Россия")
+#
+d <- suppressWarnings(lapply(addresses, function(address) {
+  #set the elapsed time counter to 0
+  t <- Sys.time()
+  #calling the nominatim OSM API
+  api_output <- nominatim_osm(address)
+  #get the elapsed time
+  t <- difftime(Sys.time(), t, 'secs')
+  #return data.frame with the input address, output of the nominatim_osm function and elapsed time
+  return(data.frame(address = address, api_output, elapsed_time = t))
+  }) %>%
+#stack the list output into data.frame
+bind_rows() %>% data.frame())
+#output the data.frame content into console
+d 
+```
+
+```{r}
+getMapQuest <- function(url) {
+  tryCatch(jsonlite::fromJSON(
+    url
+  ),
+    error = function(c) "error",
+    warning = function(c) "warning",
+    message = function(c) "message"
+  )
+}
+
+startPnt <- "Goselingstraat,Nijmegen,The%20Netherlands"
+finishPnt <- "Ruitenberglaan,Arnhem,The%20Netherlands"
+
+apiResult <- getMapQuest(paste0
+                         (
+                           "http://open.mapquestapi.com/directions/v2/route?key=IYLf8VwQh3DXfwqaYY18hxLCLofYUTXU&from=",
+                           startPnt,
+                           "&to=",
+                           finishPnt
+                           )
+                         )
+
+apiResult$route$legs$maneuvers[[1]]$narrative
+```
+
+```{r}
+library(reticulate)
+use_virtualenv("Library/Frameworks/Python.framework/Versions/3.7/bin")
+requests <- import("requests")
+json <- import("json")
+response = requests$get(paste0
+                         (
+                           "http://open.mapquestapi.com/directions/v2/route?key=IYLf8VwQh3DXfwqaYY18hxLCLofYUTXU&from=",
+                           startPnt,
+                           "&to=",
+                           finishPnt
+                           )
+                        )
+
+geo_data <- json$loads(response$content$decode('utf-8'))
+maneuv <- geo_data$route$legs[[1]]$maneuvers
+
+narr <- lapply(maneuvers, function(x) return(x$narrative)) %>% unlist
+narr
+loca <- lapply(maneuv, function(x) return(x$startPoint))
+long <- lapply(loca, function(x) return(x$lng)) %>% unlist
+lati <- lapply(loca, function(x) return(x$lat)) %>% unlist
+
+direct <- data.frame(long, lati, narr)
+```
+
+```{r}
+library(leaflet)
+
+leaflet(direct) %>% 
+    addTiles() %>% 
+    addCircleMarkers(lat = ~lati, lng = ~long, label = ~narr, color = "red") %>%
+    addPolylines(lat = ~lati, lng = ~long)
+```
+
+```{python}
+import json
+import requests
+
+def get_data(url):
+
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        return json.loads(response.content.decode('utf-8'))
+    else:
+        return print('Empty')
+        
+
+api_url = 'http://open.mapquestapi.com/directions/v2/route?key=IYLf8VwQh3DXfwqaYY18hxLCLofYUTXU&from=Ruitenberglaan,Arnhem,The%20Netherlands&to=Stadsdam,Huissen,The%20Netherlands'
+mydata = get_data(api_url)
+```
+
+```{r}
+maneuvers <- py$mydata$route$legs[[1]]$maneuvers
+str(maneuvers)
+narratives <- lapply(maneuvers, function(x) return(x$narrative)) %>% unlist
+narratives
+locations <- lapply(maneuvers, function(x) return(x$startPoint))
+lng <- lapply(locations, function(x) return(x$lng)) %>% unlist
+lat <- lapply(locations, function(x) return(x$lat)) %>% unlist
+
+directions <- data.frame(lng, lat, narratives)
+```
+
+```{r}
+library(leaflet)
+
+leaflet(directions) %>% 
+    addTiles() %>% 
+    addCircleMarkers(lat = ~lat, lng = ~lng, label = ~narratives, color = "red") %>%
+    addPolylines(lat = ~lat, lng = ~lng) %>%
+    addMiniMap()
+```
+

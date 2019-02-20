@@ -1,0 +1,39 @@
+---
+title: "Python in R"
+output: html_notebook
+---
+
+
+```{r}
+library(reticulate)
+pcv <- import("plantcv")
+```
+
+```{python}
+import cv2
+from plantcv import plantcv as pcv
+
+def options():
+    parser = argparse.ArgumentParser(description="Imaging processing with opencv")
+    parser.add_argument("-i", "--image", help="Input image file.", required=True)
+    parser.add_argument("-o", "--outdir", help="Output directory for image files.", required=False)
+    parser.add_argument("-r","--result", help="result file.", required= False )
+    parser.add_argument("-w","--writeimg", help="write out images.", default=False, action="store_true")
+    parser.add_argument("-D", "--debug", help="can be set to 'print' or None (or 'plot' if in jupyter) prints intermediate images.", default=None)
+    args = parser.parse_args()
+    return args
+    
+pcv.params.debug = "plot"
+
+#read in image
+img, path, img_filename = pcv.readimage("test_image.jpg", "native")
+```
+
+```{python}
+img_gray_sat = pcv.rgb2gray_hsv(img, 's')
+```
+
+```{python}
+img_binary = pcv.threshold.binary(img_gray_sat, 120, 255, 'light')
+```
+
